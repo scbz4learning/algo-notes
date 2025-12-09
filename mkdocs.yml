@@ -1,0 +1,61 @@
+site_name: Algorithm Notes
+site_url: https://scbz4learning.github.io/algo-notes/
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+    - search.suggest
+    - search.highlight
+    - tags
+    - blog
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+
+nav:
+  - 博客: 
+    - index.md
+    - LeetCode: blog/LeetCode
+  - 标签: tags.md
+
+plugins:
+  - search
+  - tags
+  - blog:
+      blog_dir: .
+      authors_profiles: true
+      archive: false
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - def_list
+  - attr_list
+  - md_in_html
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.magiclink
+  - pymdownx.tasklist
+  - pymdownx.emoji
+  - pymdownx.tilde
+  - pymdownx.mark
+  - pymdownx.arithmatex  # 数学公式
+  - pymdownx.details
+  - pymdownx.tabbed
+  - "nl2br"
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/scbz4learning/algo-notes
