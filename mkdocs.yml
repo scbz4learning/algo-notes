@@ -1,5 +1,9 @@
 site_name: Algorithm Notes
 site_url: https://scbz4learning.github.io/algo-notes/
+repo_url: https://github.com/scbz4learning/algo-notes.git
+remote_branch: pages 
+remote_name: origin
+
 theme:
   name: material
   language: zh
@@ -13,7 +17,6 @@ theme:
     - search.suggest
     - search.highlight
     - tags
-    - blog
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
