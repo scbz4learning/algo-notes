@@ -20,19 +20,9 @@ theme:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
 
-nav:
-  - 博客: 
-    - index.md
-    - LeetCode: blog/LeetCode
-  - 标签: tags.md
-
 plugins:
   - search
   - tags
-  - blog:
-      blog_dir: .
-      authors_profiles: true
-      archive: false
 
 markdown_extensions:
   - admonition
@@ -50,10 +40,16 @@ markdown_extensions:
   - pymdownx.emoji
   - pymdownx.tilde
   - pymdownx.mark
-  - pymdownx.arithmatex  # 数学公式
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.details
   - pymdownx.tabbed
   - "nl2br"
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 extra:
   social:
