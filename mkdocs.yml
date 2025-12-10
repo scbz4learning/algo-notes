@@ -22,10 +22,9 @@ theme:
       scheme: default
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-
-plugins:
-  - search
-  - tags
+  toggle:
+    icon: material/brightness-6
+    name: Toggle Dark/Light Mode
 
 markdown_extensions:
   - admonition
