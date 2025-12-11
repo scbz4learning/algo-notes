@@ -67,6 +67,9 @@ def parse_index_file(scanned_data):
             
         if line.startswith("### "):
             current_subdir = line.replace("### ", "").strip()
+            # Ignore "最新更新" section for table parsing
+            if current_subdir.startswith("最新更新"):
+                current_subdir = None
             processing_table = False
             continue
             
@@ -158,6 +161,62 @@ def select_problems(data):
             
     return selected
 
+def parse_existing_today_section(lines):
+    """
+    Parses the '### 最新更新: ...' section.
+    Returns: (date_str, existing_new_problems, existing_review_problems)
+    existing_new_problems: list of (subdir, name)
+    existing_review_problems: list of (subdir, name)
+    """
+    date_str = None
+    existing_new = []
+    existing_review = []
+    
+    start_index = -1
+    end_index = -1
+    
+    # Find section range
+    for i, line in enumerate(lines):
+        if line.strip().startswith("### 最新更新:"):
+            start_index = i
+            date_str = line.strip().replace("### 最新更新:", "").strip()
+            break
+            
+    if start_index == -1:
+        return None, [], []
+        
+    # Find end
+    for i in range(start_index + 1, len(lines)):
+        if lines[i].strip().startswith("## "): # Next main section
+            end_index = i
+            break
+    if end_index == -1:
+        end_index = len(lines)
+        
+    section_lines = lines[start_index:end_index]
+    
+    current_list = None
+    for line in section_lines:
+        line = line.strip()
+        if line == "#### 新题":
+            current_list = existing_new
+        elif line == "#### 复习":
+            current_list = existing_review
+        elif line.startswith("- ["):
+            # Parse - [name](subdir/name.md)
+            match = re.match(r"- \[(.*?)\]\((.*?)\)", line)
+            if match and current_list is not None:
+                path = match.group(2)
+                if "/" in path:
+                    parts = path.split("/")
+                    # parts[-1] is filename.md, parts[-2] is subdir
+                    if len(parts) >= 2:
+                        subdir = parts[-2]
+                        name = os.path.splitext(parts[-1])[0]
+                        current_list.append((subdir, name))
+                        
+    return date_str, existing_new, existing_review
+
 def update_index_file(data, selected_problems, new_problems, update_only=False):
     """
     Updates the data with new review info and rewrites the Reviewing Timeline section in index.md.
@@ -191,6 +250,36 @@ def update_index_file(data, selected_problems, new_problems, update_only=False):
         with open(index_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
             
+    # Parse existing section to support incremental updates
+    last_date, existing_new, existing_review = parse_existing_today_section(lines)
+    
+    is_same_day = (last_date == today_str)
+    
+    final_new_problems = []
+    final_review_problems = []
+    
+    if is_same_day:
+        # Merge new problems: existing + current (deduplicated)
+        seen = set()
+        for item in existing_new:
+            final_new_problems.append(item)
+            seen.add(item)
+        for item in new_problems:
+            if item not in seen:
+                final_new_problems.append(item)
+                seen.add(item)
+                
+        if update_only:
+            # Keep existing review problems if we are just updating file list
+            final_review_problems = existing_review
+        else:
+            # Overwrite review problems with newly selected ones if generating plan
+            final_review_problems = selected_problems
+    else:
+        # Different day or first run: use current findings
+        final_new_problems = new_problems
+        final_review_problems = selected_problems
+
     # Find start of Reviewing Timeline
     cut_index = len(lines)
     for i, line in enumerate(lines):
@@ -200,36 +289,32 @@ def update_index_file(data, selected_problems, new_problems, update_only=False):
             
     new_content = lines[:cut_index]
     
-    # Update ### Today: section
+    # Update ### 最新更新: section
     today_index = -1
     for i, line in enumerate(new_content):
-        if line.strip() == "### Today:":
+        if line.strip().startswith("### 最新更新:"):
             today_index = i
             break
     
-    today_lines = ["\n"]
-    
-    # Sort lists by name
-    new_problems.sort(key=lambda x: x[1])
-    selected_problems.sort(key=lambda x: x[1])
+    today_lines = [f"### 最新更新: {today_str}\n\n"]
 
-    if new_problems:
+    if final_new_problems:
         today_lines.append("#### 新题\n")
-        for subdir, name in new_problems:
+        for subdir, name in final_new_problems:
                 link = f"{subdir}/{name}.md"
                 today_lines.append(f"- [{name}]({link})\n")
         today_lines.append("\n")
 
-    if not update_only:
+    if not update_only or (update_only and is_same_day and final_review_problems):
         today_lines.append("#### 复习\n")
-        if selected_problems:
-            for subdir, name in selected_problems:
+        if final_review_problems:
+            for subdir, name in final_review_problems:
                 link = f"{subdir}/{name}.md"
                 today_lines.append(f"- [{name}]({link})\n")
         else:
             today_lines.append("今日无复习计划。\n")
         today_lines.append("\n")
-    elif not new_problems:
+    elif not final_new_problems:
         # If update only and no new problems, we can say so or leave it empty
         today_lines.append("无新题。\n\n")
     
@@ -237,13 +322,15 @@ def update_index_file(data, selected_problems, new_problems, update_only=False):
         # Find end of section
         end_index = len(new_content)
         for i in range(today_index + 1, len(new_content)):
-            if new_content[i].strip().startswith("#"):
+            line = new_content[i].strip()
+            # Stop at next header of level 1, 2, or 3.
+            # We want to include #### headers in the replacement range so they get overwritten.
+            if line.startswith("#") and not line.startswith("####"):
                 end_index = i
                 break
-        new_content[today_index+1:end_index] = today_lines
+        new_content[today_index:end_index] = today_lines # Replace including the header
     else:
         # Append if not found
-        new_content.append("\n### Today:\n")
         new_content.extend(today_lines)
     
     # Ensure there is a newline before the section if file is not empty
