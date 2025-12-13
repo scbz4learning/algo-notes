@@ -22,8 +22,8 @@ List:
 ### `find`
 从 c++11 开始, 如果找不到元素:
 
-* 对于 `std::vector` 或 `std::list` 等容器，`find` 返回的是 `end()` 迭代器。
-* 对于 `std::string`，`find` 返回的是 `std::string::npos` 常量。
+* `std::find(It start, It end, value)` 返回的是 `end()` 迭代器。
+* `str.find(value)` (`str` 是一个 `std::string` 类型的实例) 返回的是 `std::string::npos` 常量。
 
 List:
 
